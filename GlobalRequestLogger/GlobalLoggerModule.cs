@@ -62,223 +62,222 @@ namespace GlobalRequestLogger
         }
 
         private static string GenerateHTMLResponse(string rootDomain, string rayId)
-            => @"<!DOCTYPE html>
-    <html>
-    <head>
-        <title>Just a moment...</title>
-        <style>
-            body {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                margin: 0;
-                font-family: Arial, sans-serif;
-                background-color: #f9f9f9;
-            }
-            .container {
-                text-align: center;
-                padding: 20px;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                background-color: #fff;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                display: none; /* Hide container by default */
-            }
-            .checkbox-container {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin-top: 20px;
-                animation: fadeIn 1s ease;
-            }
-            input[type='checkbox'] {
-                margin-right: 10px;
-                transform: scale(1.5);
-                transition: transform 0.3s ease;
-            }
-            input[type='checkbox']:hover {
-                transform: scale(1.7);
-            }
-            input[type='checkbox'].clicked {
-                animation: pulse 0.5s ease;
-            }
-            .form-processing {
-                animation: fadeOut 1s ease forwards;
-            }
-            .loader {
-                display: none;
-                border: 4px solid #f3f3f3;
-                border-top: 4px solid #007bff;
-                border-radius: 50%;
-                width: 40px;
-                height: 40px;
-                animation: spin 1s linear infinite;
-                margin: 20px auto;
-            }
-            .loader.active {
-                display: block;
-            }
-            .noscript-message, .nocookies-message {
-                color: red;
-                font-size: 16px;
-                margin-top: 20px;
-            }
-            .checkbox-box {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 15px;
-                border: 2px solid #ccc;
-                border-radius: 8px;
-                background-color: #f9f9f9;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                transition: box-shadow 0.3s ease, border-color 0.3s ease;
-            }
-            .checkbox-box:hover {
-                box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-                border-color: #007bff;
-            }
-            .checkbox-box input[type='checkbox'] {
-                margin-right: 10px;
-                transform: scale(1.5);
-                transition: transform 0.3s ease;
-            }
-            .checkbox-box input[type='checkbox']:hover {
-                transform: scale(1.7);
-            }
-            .checkbox-box label {
-                font-size: 16px;
-                font-weight: bold;
-                color: #333;
-            }
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(-20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes fadeOut {
-                from { opacity: 1; transform: translateY(0); }
-                to { opacity: 0; transform: translateY(-20px); }
-            }
-            @keyframes pulse {
-                0% { transform: scale(1.5); }
-                50% { transform: scale(1.8); }
-                100% { transform: scale(1.5); }
-            }
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-        </style>
-        <script>
-            // Check if cookies are enabled
-            function checkCookies() {
-                document.cookie = 'sitecookie=1';
-                const cookiesEnabled = document.cookie.indexOf('sitecookie=') !== -1;
-                if (!cookiesEnabled) {
-                    const cookieMessage = document.querySelector('.nocookies-message');
-                    cookieMessage.style.display = 'block';
-                    return false;
-                }
-                return true;
-            }
+    => $@"<!DOCTYPE html>
+<html>
+<head>
+    <title>Just a moment...</title>
+    <style>
+        body {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+        }}
+        .container {{
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none; /* Hide container by default */
+        }}
+        .checkbox-container {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+            animation: fadeIn 1s ease;
+        }}
+        input[type='checkbox'] {{
+            margin-right: 10px;
+            transform: scale(1.5);
+            transition: transform 0.3s ease;
+        }}
+        input[type='checkbox']:hover {{
+            transform: scale(1.7);
+        }}
+        input[type='checkbox'].clicked {{
+            animation: pulse 0.5s ease;
+        }}
+        .form-processing {{
+            animation: fadeOut 1s ease forwards;
+        }}
+        .loader {{
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }}
+        .loader.active {{
+            display: block;
+        }}
+        .noscript-message, .nocookies-message {{
+            color: red;
+            font-size: 16px;
+            margin-top: 20px;
+        }}
+        .checkbox-box {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease, border-color 0.3s ease;
+        }}
+        .checkbox-box:hover {{
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+            border-color: #007bff;
+        }}
+        .checkbox-box input[type='checkbox'] {{
+            margin-right: 10px;
+            transform: scale(1.5);
+            transition: transform 0.3s ease;
+        }}
+        .checkbox-box input[type='checkbox']:hover {{
+            transform: scale(1.7);
+        }}
+        .checkbox-box label {{
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }}
+        @keyframes fadeIn {{
+            from {{ opacity: 0; transform: translateY(-20px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+        @keyframes fadeOut {{
+            from {{ opacity: 1; transform: translateY(0); }}
+            to {{ opacity: 0; transform: translateY(-20px); }}
+        }}
+        @keyframes pulse {{
+            0% {{ transform: scale(1.5); }}
+            50% {{ transform: scale(1.8); }}
+            100% {{ transform: scale(1.5); }}
+        }}
+        @keyframes spin {{
+            0% {{ transform: rotate(0deg); }}
+            100% {{ transform: rotate(360deg); }}
+        }}
+    </style>
+    <script>
+        // Check if cookies are enabled
+        function checkCookies() {{
+            document.cookie = 'sitecookie=1';
+            const cookiesEnabled = document.cookie.indexOf('sitecookie=') !== -1;
+            if (!cookiesEnabled) {{
+                const cookieMessage = document.querySelector('.nocookies-message');
+                cookieMessage.style.display = 'block';
+                return false;
+            }}
+            return true;
+        }}
 
-            // Show the container if JavaScript and cookies are enabled
-            function showContainerIfEnabled() {
-                const container = document.querySelector('.container');
-                if (checkCookies()) {
-                    container.style.display = 'block';
-                }
-            }
+        // Show the container if JavaScript and cookies are enabled
+        function showContainerIfEnabled() {{
+            const container = document.querySelector('.container');
+            if (checkCookies()) {{
+                container.style.display = 'block';
+            }}
+        }}
 
-            // Show loader and hide checkbox-container for 3 seconds on page load
-            function showLoaderOnPageLoad() {
-                const loader = document.querySelector('.loader');
-                const checkboxContainer = document.querySelector('.checkbox-container');
-                const checkbox = document.querySelector('#verifyCheckbox');
+        // Show loader and hide checkbox-container for 3 seconds on page load
+        function showLoaderOnPageLoad() {{
+            const loader = document.querySelector('.loader');
+            const checkboxContainer = document.querySelector('.checkbox-container');
+            const checkbox = document.querySelector('#verifyCheckbox');
 
-                checkbox.disabled = true; // Disable the checkbox
+            checkbox.disabled = true; // Disable the checkbox
+            checkboxContainer.style.display = 'none'; // Hide the checkbox-container
+            loader.classList.add('active'); // Show the loader
+
+            setTimeout(() => {{
+                loader.classList.remove('active'); // Hide the loader
+                checkboxContainer.style.display = 'flex'; // Show the checkbox-container
+                checkbox.disabled = false; // Re-enable the checkbox
+            }}, 3000);
+        }}
+
+        function handleCheckboxChange(event) {{
+            const checkbox = event.target;
+            const form = checkbox.closest('form');
+            const loader = document.querySelector('.loader');
+            const checkboxContainer = document.querySelector('.checkbox-container');
+
+            // If the checkbox is already disabled, return early to prevent duplicate actions
+            if (checkbox.disabled) {{
+                return;
+            }}
+
+            // Disable the checkbox to prevent multiple triggers
+            checkbox.disabled = true;
+
+            // Add animation class to checkbox
+            checkbox.classList.add('clicked');
+
+            // Remove the animation class after it completes
+            setTimeout(() => {{
+                checkbox.classList.remove('clicked');
+            }}, 500);
+
+            // If the checkbox is checked, show the loader and process the form
+            if (checkbox.checked) {{
+                loader.classList.add('active');
                 checkboxContainer.style.display = 'none'; // Hide the checkbox-container
-                loader.classList.add('active'); // Show the loader
+                setTimeout(() => {{
+                    form.submit(); // Submit the form after the loader animation
+                }}, 3000); // Wait for the loader to complete
+            }}
+        }}
 
-                setTimeout(() => {
-                    loader.classList.remove('active'); // Hide the loader
-                    checkboxContainer.style.display = 'flex'; // Show the checkbox-container
-                    checkbox.disabled = false; // Re-enable the checkbox
-                }, 3000);
-            }
+        // Attach event listener dynamically
+        window.onload = () => {{
+            showContainerIfEnabled();
+            showLoaderOnPageLoad();
 
-            function handleCheckboxChange(event) {
-                const checkbox = event.target;
-                const form = checkbox.closest('form');
-                const loader = document.querySelector('.loader');
-                const checkboxContainer = document.querySelector('.checkbox-container');
-
-                // If the checkbox is already disabled, return early to prevent duplicate actions
-                if (checkbox.disabled) {
-                    return;
-                }
-
-                // Disable the checkbox to prevent multiple triggers
-                checkbox.disabled = true;
-
-                // Add animation class to checkbox
-                checkbox.classList.add('clicked');
-
-                // Remove the animation class after it completes
-                setTimeout(() => {
-                    checkbox.classList.remove('clicked');
-                }, 500);
-
-                // If the checkbox is checked, show the loader and process the form
-                if (checkbox.checked) {
-                    loader.classList.add('active');
-                    checkboxContainer.style.display = 'none'; // Hide the checkbox-container
-                    setTimeout(() => {
-                        form.submit(); // Submit the form after the loader animation
-                    }, 3000); // Wait for the loader to complete
-                }
-            }
-
-            // Run cookie check and show loader on page load
-            window.onload = () => {
-                showContainerIfEnabled();
-                showLoaderOnPageLoad();
-            };
-        </script>
-    </head>
-    <body>
-        <div class=""container"">
-            <h1>@DomainName</h1>
-            <b><p>Verificando que eres humano. Esto puede durar unos segundos.</p></b>
-            <form method=""post"" action="""">
-                <div class=""checkbox-container"">
-                    <div class=""checkbox-box"">
-                        <input type=""checkbox"" id=""verifyCheckbox"" onchange=""handleCheckboxChange(event)"">
-                        <label for=""verifyCheckbox"">No soy un robot</label>
-                    </div>
+            const checkbox = document.querySelector('#verifyCheckbox');
+            checkbox.addEventListener('change', handleCheckboxChange);
+        }};
+    </script>
+</head>
+<body>
+    <div class=""container"">
+        <h1>{rootDomain}</h1>
+        <b><p>Verificando que eres humano. Esto puede durar unos segundos.</p></b>
+        <form method=""post"" action="""">
+            <div class=""checkbox-container"">
+                <div class=""checkbox-box"">
+                    <input type=""checkbox"" id=""verifyCheckbox"">
+                    <label for=""verifyCheckbox"">No soy un robot</label>
                 </div>
-                <div class=""loader""></div>
-            </form>
-            <br/>
-            <p>@DomainName necesita revisar la seguridad de la conexión antes de proceder.</p>
-            <br/><br/><br/>
-            <hr/>
-            <em>Ray Id: @RayId</em>
-            <br/>   
-            <em>Powered by @DomainName</em>
-        </div>
-        <noscript>
-            <div class=""noscript-message"">
-                JavaScript is disabled in your browser. Please enable JavaScript to proceed.
             </div>
-        </noscript>
-        <div class=""nocookies-message"" style=""display: none;"">
-            Cookies are disabled in your browser. Please enable cookies to proceed.
+            <div class=""loader""></div>
+        </form>
+        <br/>
+        <p>{rootDomain} necesita revisar la seguridad de la conexión antes de proceder.</p>
+        <br/><br/><br/>
+        <hr/>
+        <em>Ray Id: {rayId}</em>
+        <br/>   
+        <em>Powered by {rootDomain}</em>
+    </div>
+    <noscript>
+        <div class=""noscript-message"">
+            JavaScript is disabled in your browser. Please enable JavaScript to proceed.
         </div>
-    </body>
-    </html>
-    ".Replace("@DomainName", rootDomain).Replace("@RayId", rayId);
+    </noscript>
+</body>
+</html>".Replace("@DomainName", rootDomain).Replace("@RayId", rayId);
 
         private static bool IsTokenValid(string token)
         {
@@ -314,31 +313,29 @@ namespace GlobalRequestLogger
             var app = (HttpApplication)sender;
             var response = app.Context.Response;
 
-            // Remove unnecessary headers for security
-            response.Headers.Remove("X-Powered-By");
-            response.Headers.Remove("Server");
-            response.Headers.Remove("X-AspNet-Version");
-            response.Headers.Remove("X-AspNetMvc-Version");
-
             // Add security headers
             response.Headers.Add("X-Content-Type-Options", "nosniff");
             response.Headers.Add("X-XSS-Protection", "1; mode=block");
             response.Headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-            response.Headers.Add("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none';");
-            response.Headers.Add("Referrer-Policy", "no-referrer-when-downgrade");
+            response.Headers.Add("Content-Security-Policy", "default-src 'self'; script-src 'self' 'sha256-0ZlyLwHcxjKcBQ/fvx6MAQfxqQNX/DwEtPPFbr/lvkI='; style-src 'self' 'sha256-mStR55P8aQKw5ESvNymSpWHp9zV6gF0+QpUJhgZUwHk=' 'sha256-vOchygdprLgD+6x8a3gR6Kc5oQruwv1+N3ab/ONbf0M=' 'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='; img-src 'self'; object-src 'none'; frame-ancestors 'none';");
+            response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
             response.Headers.Add("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
             response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
             response.Headers.Add("Pragma", "no-cache");
             response.Headers.Add("Expires", "0");
             response.Headers.Add("X-Frame-Options", "DENY");
             response.Headers.Add("X-Download-Options", "noopen");
-            response.Headers.Add("X-Permitted-Cross-Domain-Policies", "none");
-            response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-            response.Headers.Add("Access-Control-Allow-Credentials", "true");
+            response.Headers.Add("X-Permitted-Cross-Domain-Policies", "none");            
             response.Headers.Add("Access-Control-Max-Age", "86400"); // Cache preflight requests for 24 hours
             response.Headers.Add("Cross-Origin-Embedder-Policy", "require-corp");
             response.Headers.Add("Cross-Origin-Opener-Policy", "same-origin");
             response.Headers.Add("Cross-Origin-Resource-Policy", "same-origin");
+
+            // Remove unnecessary headers for security
+            response.Headers.Remove("X-Powered-By");
+            response.Headers.Remove("Server");
+            response.Headers.Remove("X-AspNet-Version");
+            response.Headers.Remove("X-AspNetMvc-Version");
         }
 
         public void Dispose() { }
