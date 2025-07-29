@@ -247,6 +247,9 @@ namespace GlobalRequestLogger
 
             const checkbox = document.querySelector('#verifyCheckbox');
             checkbox.addEventListener('change', handleCheckboxChange);
+            
+            console.log(""%c ¡Espera!"", ""color: Red; font-size: 45px; font-weight: bold;"");
+            console.log(""%cEsta función del navegador está pensada para desarrolladores. Si alguien te indicó que copiaras y pegaras algo aquí para habilitar una función o para \""piratear\"" la cuenta de alguien, se trata de un fraude."", ""color: green; font-size: x-large;"");
         }};
     </script>
 </head>
@@ -317,7 +320,7 @@ namespace GlobalRequestLogger
             response.Headers.Add("X-Content-Type-Options", "nosniff");
             response.Headers.Add("X-XSS-Protection", "1; mode=block");
             response.Headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-            response.Headers.Add("Content-Security-Policy", "default-src 'self'; script-src 'self' 'sha256-0ZlyLwHcxjKcBQ/fvx6MAQfxqQNX/DwEtPPFbr/lvkI='; style-src 'self' 'sha256-mStR55P8aQKw5ESvNymSpWHp9zV6gF0+QpUJhgZUwHk=' 'sha256-vOchygdprLgD+6x8a3gR6Kc5oQruwv1+N3ab/ONbf0M=' 'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='; img-src 'self'; object-src 'none'; frame-ancestors 'none';");
+            response.Headers.Add("Content-Security-Policy", "default-src 'self'; script-src 'self' 'sha256-0ZlyLwHcxjKcBQ/fvx6MAQfxqQNX/DwEtPPFbr/lvkI=' 'sha256-+dzpas4SIfqJnkykXXR3vyT7r1SSrrteMz5HpeiFBM8='; style-src 'self' 'sha256-mStR55P8aQKw5ESvNymSpWHp9zV6gF0+QpUJhgZUwHk=' 'sha256-vOchygdprLgD+6x8a3gR6Kc5oQruwv1+N3ab/ONbf0M=' 'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='; img-src 'self'; object-src 'none'; frame-ancestors 'none';");
             response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
             response.Headers.Add("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
             response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
