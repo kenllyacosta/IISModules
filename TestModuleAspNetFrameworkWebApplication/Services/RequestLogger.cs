@@ -1,23 +1,39 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
 using System.Web;
-using System.Web.Script.Serialization;
 
 namespace TestModuleAspNetFrameworkWebApplication.Services
 {
     internal static class RequestLogger
     {
-        private static readonly ConcurrentQueue<string> _queue = new ConcurrentQueue<string>();
+        private static readonly ConcurrentQueue<SafeRequestData> _queue = new ConcurrentQueue<SafeRequestData>();
+        private static readonly ConcurrentQueue<LogEntrySafeResponse> _responseQueue = new ConcurrentQueue<LogEntrySafeResponse>();
+        private static readonly string _connectionString = "Server=.;Database=GlobalRequests;Integrated Security=True;TrustServerCertificate=True;";
+
         static RequestLogger()
         {
             Task.Factory.StartNew(ProcessQueueAsync, TaskCreationOptions.LongRunning);
+            Task.Factory.StartNew(ProcessResponseQueueAsync, TaskCreationOptions.LongRunning);
         }
 
         public static void Enqueue(HttpRequest req)
         {
             var safeRequestData = SafeRequestData.FromHttpRequest(req);
-            _queue.Enqueue(new JavaScriptSerializer().Serialize(safeRequestData));
+            _queue.Enqueue(safeRequestData);
+        }
+
+        public static void EnqueueResponse(string url, string httpMethod, long responseTime, DateTime timestamp)
+        {
+            var logEntry = new LogEntrySafeResponse
+            {
+                Url = url,
+                HttpMethod = httpMethod,
+                ResponseTime = responseTime,
+                Timestamp = timestamp
+            };
+            _responseQueue.Enqueue(logEntry);
         }
 
         private static volatile bool _isRunning = true;
@@ -35,16 +51,63 @@ namespace TestModuleAspNetFrameworkWebApplication.Services
                 {
                     try
                     {
-                        // Write to a text file.
-                        System.IO.File.AppendAllText(@"C:\Temp\GlobalLog.txt", entry + Environment.NewLine);
+                        // Log to SQL Server
+                        using (var connection = new SqlConnection(_connectionString))
+                        {
+                            await connection.OpenAsync();
+                            var command = new SqlCommand("InsertRequestLog", connection) { CommandType = System.Data.CommandType.StoredProcedure };
+
+                            command.Parameters.AddWithValue("@Url", entry.Url);
+                            command.Parameters.AddWithValue("@HttpMethod", entry.HttpMethod);
+                            command.Parameters.AddWithValue("@Headers", entry.Headers);
+                            command.Parameters.AddWithValue("@QueryString", entry.QueryString);
+                            command.Parameters.AddWithValue("@UserHostAddress", entry.UserHostAddress);
+                            command.Parameters.AddWithValue("@UserAgent", entry.UserAgent);
+                            command.Parameters.AddWithValue("@ContentType", entry.ContentType);
+                            command.Parameters.AddWithValue("@ContentLength", entry.ContentLength);
+                            command.Parameters.AddWithValue("@RawUrl", entry.RawUrl);
+                            command.Parameters.AddWithValue("@ApplicationPath", entry.ApplicationPath);
+
+                            await command.ExecuteNonQueryAsync();
+                        }
                     }
                     catch (Exception ex)
                     {
-                        // Log to a file
-                        System.IO.File.AppendAllText(@"C:\Temp\error.log", $"{DateTime.UtcNow}: {ex}" + Environment.NewLine);
+                        // For simplicity, we just write to console here.
+                        Console.WriteLine($"Error logging request: {ex.Message}");
                     }
                 }
 
+                await Task.Delay(250); // Short pause to prevent CPU spinning
+            }
+        }
+
+        private static async Task ProcessResponseQueueAsync()
+        {
+            while (_isRunning)
+            {
+                while (_responseQueue.TryDequeue(out var entry))
+                {
+                    try
+                    {
+                        // Log response data to SQL Server
+                        using (var connection = new SqlConnection(_connectionString))
+                        {
+                            await connection.OpenAsync();
+                            var command = new SqlCommand("InsertResponseLog", connection) { CommandType = System.Data.CommandType.StoredProcedure };
+                            command.Parameters.AddWithValue("@Url", entry.Url);
+                            command.Parameters.AddWithValue("@HttpMethod", entry.HttpMethod);
+                            command.Parameters.AddWithValue("@ResponseTime", entry.ResponseTime);
+                            command.Parameters.AddWithValue("@Timestamp", entry.Timestamp);
+                            await command.ExecuteNonQueryAsync();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // For simplicity, we just write to console here.
+                        Console.WriteLine($"Error logging response: {ex.Message}");
+                    }
+                }
                 await Task.Delay(250); // Short pause to prevent CPU spinning
             }
         }
@@ -79,5 +142,13 @@ namespace TestModuleAspNetFrameworkWebApplication.Services
                 ApplicationPath = req.ApplicationPath
             };
         }
+    }
+
+    internal class LogEntrySafeResponse
+    {
+        public string Url { get; set; }
+        public string HttpMethod { get; set; }
+        public long ResponseTime { get; set; }
+        public DateTime Timestamp { get; set; }
     }
 }

@@ -60,8 +60,7 @@ namespace GlobalRequestLogger
         }
 
         private static string GenerateHTMLResponse(string rootDomain, string rayId)
-        {
-            return @"<!DOCTYPE html>
+            => @"<!DOCTYPE html>
     <html>
     <head>
         <title>Just a moment...</title>
@@ -278,7 +277,6 @@ namespace GlobalRequestLogger
     </body>
     </html>
     ".Replace("@DomainName", rootDomain).Replace("@RayId", rayId);
-        }
 
         private static bool IsTokenValid(string token)
         {
@@ -298,20 +296,14 @@ namespace GlobalRequestLogger
             if (app.Context.Items["RequestStartTime"] is Stopwatch stopwatch)
             {
                 stopwatch.Stop();
-                var responseTime = stopwatch.ElapsedMilliseconds;
 
-                // Log the response time
-                var logEntry = new
-                {
-                    Url = app.Context.Request.Url?.ToString(),
+                // Fire-and-forget logging
+                RequestLogger.EnqueueResponse(
+                    app.Context.Request.Url?.ToString(),
                     app.Context.Request.HttpMethod,
-                    ResponseTime = responseTime,
-                    Timestamp = DateTime.UtcNow
-                };
-
-                // Serialize and enqueue the log entry
-                var serializedLogEntry = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(logEntry);
-                System.IO.File.AppendAllText("C:\\Temp\\ResponseTimeLog.txt", serializedLogEntry + Environment.NewLine);
+                    stopwatch.ElapsedMilliseconds,
+                    DateTime.UtcNow
+                );
             }
         }
 
