@@ -14,6 +14,7 @@ namespace GlobalRequestLogger
         {
             context.BeginRequest += Context_BeginRequest;
             context.EndRequest += Context_EndRequest;
+            context.PreSendRequestHeaders += Context_PreSendRequestHeaders; // Add this line
         }
 
         private static void Context_BeginRequest(object sender, EventArgs e)
@@ -51,6 +52,7 @@ namespace GlobalRequestLogger
                         HttpContext.Current.ApplicationInstance.CompleteRequest(); // End the request properly
                     }
                 }
+
                 response.End();
                 return;
             }
@@ -305,6 +307,38 @@ namespace GlobalRequestLogger
                     DateTime.UtcNow
                 );
             }
+        }
+
+        private static void Context_PreSendRequestHeaders(object sender, EventArgs e)
+        {
+            var app = (HttpApplication)sender;
+            var response = app.Context.Response;
+
+            // Remove unnecessary headers for security
+            response.Headers.Remove("X-Powered-By");
+            response.Headers.Remove("Server");
+            response.Headers.Remove("X-AspNet-Version");
+            response.Headers.Remove("X-AspNetMvc-Version");
+
+            // Add security headers
+            response.Headers.Add("X-Content-Type-Options", "nosniff");
+            response.Headers.Add("X-XSS-Protection", "1; mode=block");
+            response.Headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+            response.Headers.Add("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none';");
+            response.Headers.Add("Referrer-Policy", "no-referrer-when-downgrade");
+            response.Headers.Add("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+            response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+            response.Headers.Add("Pragma", "no-cache");
+            response.Headers.Add("Expires", "0");
+            response.Headers.Add("X-Frame-Options", "DENY");
+            response.Headers.Add("X-Download-Options", "noopen");
+            response.Headers.Add("X-Permitted-Cross-Domain-Policies", "none");
+            response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+            response.Headers.Add("Access-Control-Allow-Credentials", "true");
+            response.Headers.Add("Access-Control-Max-Age", "86400"); // Cache preflight requests for 24 hours
+            response.Headers.Add("Cross-Origin-Embedder-Policy", "require-corp");
+            response.Headers.Add("Cross-Origin-Opener-Policy", "same-origin");
+            response.Headers.Add("Cross-Origin-Resource-Policy", "same-origin");
         }
 
         public void Dispose() { }
