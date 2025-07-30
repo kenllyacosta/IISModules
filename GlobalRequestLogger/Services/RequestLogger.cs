@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Configuration;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 using System.Web;
@@ -11,7 +10,7 @@ namespace GlobalRequestLogger.Services
     {
         private static readonly ConcurrentQueue<SafeRequestData> _queue = new ConcurrentQueue<SafeRequestData>();
         private static readonly ConcurrentQueue<LogEntrySafeResponse> _responseQueue = new ConcurrentQueue<LogEntrySafeResponse>();
-        private static readonly string _connectionString = "Server=.;Database=GlobalRequests;Integrated Security=True;TrustServerCertificate=True;";
+        private static string _connectionString = "";
 
         static RequestLogger()
         {
@@ -19,14 +18,16 @@ namespace GlobalRequestLogger.Services
             Task.Factory.StartNew(ProcessResponseQueueAsync, TaskCreationOptions.LongRunning);
         }
 
-        public static void Enqueue(HttpRequest req)
+        public static void Enqueue(HttpRequest req, string connectionString)
         {
+            _connectionString = connectionString;
             var safeRequestData = SafeRequestData.FromHttpRequest(req);
             _queue.Enqueue(safeRequestData);
         }
 
-        public static void EnqueueResponse(string url, string httpMethod, long responseTime, DateTime timestamp)
+        public static void EnqueueResponse(string url, string httpMethod, long responseTime, DateTime timestamp, string connectionString)
         {
+            _connectionString = connectionString;
             var logEntry = new LogEntrySafeResponse
             {
                 Url = url,
