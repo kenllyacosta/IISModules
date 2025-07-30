@@ -1,3 +1,23 @@
+--IIS Should be installed first
+
+--Steps to set up the GlobalRequestLogger module in IIS:
+
+--1. Create database GlobalRequests. Run the stript init.sql
+--2. Copy de file GlobalRequestLogger.Dll and open a Developer Terminal from there with high privilege
+--3. Write this command
+--	gacutil /i GlobalRequestLogger.dll	
+--4. Open this text file 'C:\Windows\System32\inetsrv\config\applicationHost.config'
+--5. Add this line inside system.webServer => modules (It's almost at the end of the document) and save the file
+--	<add name="GlobalLoggerModule" type="GlobalRequestLogger.GlobalLoggerModule, GlobalRequestLogger, Version=1.0.0.0, Culture=neutral, PublicKeyToken=f934194141ceb978" preCondition="managedHandler,runtimeVersionv4.0" />
+--6. Reset IIS Service. Run this command
+--	iisreset
+
+Create database GlobalRequests
+Go
+
+Use GlobalRequests
+Go
+
 -- Create the RequestLogs table
 CREATE TABLE RequestLogs (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
@@ -14,6 +34,7 @@ CREATE TABLE RequestLogs (
     CreatedAt DATETIME DEFAULT GETDATE()
 );
 GO
+
 -- Create the stored procedure to insert data into RequestLogs
 CREATE PROCEDURE InsertRequestLog
     @Url NVARCHAR(MAX),
@@ -33,6 +54,7 @@ BEGIN
     INSERT INTO RequestLogs (Url, HttpMethod, Headers, QueryString, UserHostAddress, UserAgent, ContentType, ContentLength, RawUrl, ApplicationPath)
     VALUES (@Url, @HttpMethod, @Headers, @QueryString, @UserHostAddress, @UserAgent, @ContentType, @ContentLength, @RawUrl, @ApplicationPath);
 END;
+GO
 
 -- Create the ResponseLogs table
 CREATE TABLE ResponseLogs (
@@ -43,6 +65,7 @@ CREATE TABLE ResponseLogs (
     Timestamp DATETIME NOT NULL
 );
 GO
+
 -- Create the stored procedure to insert data into ResponseLogs
 CREATE PROCEDURE InsertResponseLog
     @Url NVARCHAR(MAX),
@@ -56,7 +79,6 @@ BEGIN
     INSERT INTO ResponseLogs (Url, HttpMethod, ResponseTime, Timestamp)
     VALUES (@Url, @HttpMethod, @ResponseTime, @Timestamp);
 END;
-
 GO
 
 -- Procedure to retrieve the last 10 records in a paged manner
@@ -117,13 +139,12 @@ GO
 
 -- Step 1: Create a login for the IIS application pool identity
 CREATE LOGIN [IIS APPPOOL\DefaultAppPool] FROM WINDOWS;
+GO
 
 -- Step 2: Create a user in the GlobalRequests database for the login
-USE GlobalRequests;
 CREATE USER [IIS APPPOOL\DefaultAppPool] FOR LOGIN [IIS APPPOOL\DefaultAppPool];
-
+GO
 -- Step 3: Grant necessary permissions to the user
--- Grant execute permissions on the stored procedures
 GRANT EXECUTE ON [InsertRequestLog] TO [IIS APPPOOL\DefaultAppPool];
 GRANT EXECUTE ON [InsertResponseLog] TO [IIS APPPOOL\DefaultAppPool];
 GRANT EXECUTE ON [GetPagedRequestLogs] TO [IIS APPPOOL\DefaultAppPool];

@@ -317,23 +317,6 @@ namespace GlobalRequestLogger
             var app = (HttpApplication)sender;
             var response = app.Context.Response;
 
-            // Add security headers
-            response.Headers.Add("X-Content-Type-Options", "nosniff");
-            response.Headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-            response.Headers.Add("Content-Security-Policy", "default-src 'self'; script-src 'self' 'sha256-NZFxCdkmed9jZctXZbkkFTyAGmxMIqlsXEDTQCLzNv0='; style-src 'self' 'sha256-YshJpfIJD76SGlM8Ko/w2/hDq7467DLkNY70VJ7IhPA='; img-src 'self'; object-src 'none'; frame-ancestors 'none';");
-            response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
-            response.Headers.Add("Permissions-Policy", "geolocation=(), microphone=(), camera=(), fullscreen=(), usb=()");
-            response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-            response.Headers.Add("Pragma", "no-cache");
-            response.Headers.Add("Expires", "0");
-            response.Headers.Add("X-Frame-Options", "DENY");
-            response.Headers.Add("X-Download-Options", "noopen");
-            response.Headers.Add("X-Permitted-Cross-Domain-Policies", "none");
-            response.Headers.Add("Access-Control-Max-Age", "86400");
-            response.Headers.Add("Cross-Origin-Embedder-Policy", "require-corp");
-            response.Headers.Add("Cross-Origin-Opener-Policy", "same-origin");
-            response.Headers.Add("Cross-Origin-Resource-Policy", "same-origin");
-
             // Remove unnecessary headers for security
             response.Headers.Remove("X-Powered-By");
             response.Headers.Remove("Server");
