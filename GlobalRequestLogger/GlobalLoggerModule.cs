@@ -7,20 +7,21 @@ namespace GlobalRequestLogger
 {
     public class GlobalLoggerModule : IHttpModule
     {
-        private const string TokenKey = "UserAccessToken";
+        private const string TokenKey = "asl_clearance";
         private static readonly TimeSpan TokenExpirationDuration = TimeSpan.FromHours(11);
         private static readonly string _connectionString = "Server=.;Database=GlobalRequests;Integrated Security=True;TrustServerCertificate=True;";
         public void Init(HttpApplication context)
         {
             context.BeginRequest += Context_BeginRequest;
             context.EndRequest += Context_EndRequest;
-            context.PreSendRequestHeaders += Context_PreSendRequestHeaders; // Add this line
+            context.PreSendRequestHeaders += Context_PreSendRequestHeaders;
         }
 
         private static void Context_BeginRequest(object sender, EventArgs e)
         {
             var app = (HttpApplication)sender;
             var request = app.Context.Request;
+
             // Fire-and-forget logging
             RequestLogger.Enqueue(request, _connectionString);
             var response = app.Context.Response;
@@ -40,6 +41,7 @@ namespace GlobalRequestLogger
                     var expirationTime = DateTime.UtcNow.Add(TokenExpirationDuration);
                     HttpContext.Current.Application[newToken] = expirationTime;
 
+                    // Set the cookie with the new token
                     response.Cookies.Add(new HttpCookie(TokenKey, newToken)
                     {
                         Expires = expirationTime,
@@ -50,8 +52,11 @@ namespace GlobalRequestLogger
                     // Redirect only if the token is not already valid
                     if (IsTokenValid(newToken))
                     {
-                        response.Redirect(request.Url.AbsolutePath, false); // Avoid triggering BeginRequest again
-                        HttpContext.Current.ApplicationInstance.CompleteRequest(); // End the request properly
+                        // Avoid triggering BeginRequest again
+                        response.Redirect(request.Url.AbsolutePath, false); 
+
+                        // End the request properly
+                        HttpContext.Current.ApplicationInstance.CompleteRequest(); 
                     }
                 }
 
@@ -288,9 +293,7 @@ namespace GlobalRequestLogger
         {
             // Validate the token (e.g., check expiration)
             if (HttpContext.Current.Application[token] is DateTime expirationTime)
-            {
                 return DateTime.UtcNow <= expirationTime;
-            }
 
             return false;
         }
@@ -325,7 +328,7 @@ namespace GlobalRequestLogger
             response.Headers.Add("X-Frame-Options", "DENY");
             response.Headers.Add("X-Download-Options", "noopen");
             response.Headers.Add("X-Permitted-Cross-Domain-Policies", "none");
-            response.Headers.Add("Access-Control-Max-Age", "86400"); // Cache preflight requests for 24 hours
+            response.Headers.Add("Access-Control-Max-Age", "86400");
             response.Headers.Add("Cross-Origin-Embedder-Policy", "require-corp");
             response.Headers.Add("Cross-Origin-Opener-Policy", "same-origin");
             response.Headers.Add("Cross-Origin-Resource-Policy", "same-origin");
