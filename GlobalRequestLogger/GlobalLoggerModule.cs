@@ -10,6 +10,7 @@ namespace GlobalRequestLogger
         private const string TokenKey = "asl_clearance";
         private static readonly TimeSpan TokenExpirationDuration = TimeSpan.FromHours(11);
         private static readonly string _connectionString = "Server=.;Database=GlobalRequests;Integrated Security=True;TrustServerCertificate=True;";
+        
         public void Init(HttpApplication context)
         {
             context.BeginRequest += Context_BeginRequest;
@@ -37,7 +38,7 @@ namespace GlobalRequestLogger
                 // If the request is a POST, generate the token
                 if (request.HttpMethod == "POST")
                 {
-                    var newToken = Guid.NewGuid().ToString();
+                    var newToken = RequestLogger.Encrypt(Guid.NewGuid().ToString(), "4829103746582931");
                     var expirationTime = DateTime.UtcNow.Add(TokenExpirationDuration);
                     HttpContext.Current.Application[newToken] = expirationTime;
 

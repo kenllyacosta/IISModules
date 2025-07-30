@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Data.SqlClient;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -112,6 +115,49 @@ namespace GlobalRequestLogger.Services
                 }
                 await Task.Delay(250); // Short pause to prevent CPU spinning
             }
+        }
+
+        internal static string Encrypt(string clearText, string key)
+        {
+            string Result = "";
+            byte[] keyBytes = Encoding.UTF8.GetBytes(key);
+            byte[] dataBytes = Encoding.UTF8.GetBytes(clearText);
+
+            using (var aes = Aes.Create())
+            {
+                aes.Key = keyBytes;
+                aes.Mode = CipherMode.CBC; //Better security
+                aes.Padding = PaddingMode.PKCS7;
+
+                aes.GenerateIV(); //Generate a random IV (Init Vector) for each encryption
+
+                using (var encryptor = aes.CreateEncryptor())
+                    Result = Convert.ToBase64String(aes.IV.Concat(encryptor.TransformFinalBlock(dataBytes, 0, dataBytes.Length)).ToArray());
+            }
+
+            return Result;
+        }
+
+        internal static string Decrypt(string clearText, string key)
+        {
+            string Result = "";
+            byte[] keyBytes = Encoding.UTF8.GetBytes(key);
+            byte[] encryptedBytesWithIV = Convert.FromBase64String(clearText);
+
+            using (var aes = Aes.Create())
+            {
+                aes.Key = keyBytes;
+                aes.Mode = CipherMode.CBC; //Better security
+                aes.Padding = PaddingMode.PKCS7;
+
+                //Extract IV from the encrypted data
+                aes.IV = encryptedBytesWithIV.Take(aes.BlockSize / 8).ToArray(); //Set IV for decryption
+                byte[] encryptedBytes = encryptedBytesWithIV.Skip(aes.BlockSize / 8).ToArray();
+
+                using (var decryptor = aes.CreateDecryptor())   
+                    Result = Encoding.UTF8.GetString(decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length));
+            }
+            return Result;
         }
     }
 
