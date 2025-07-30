@@ -42,7 +42,9 @@ namespace GlobalRequestLogger
 
                     response.Cookies.Add(new HttpCookie(TokenKey, newToken)
                     {
-                        Expires = expirationTime
+                        Expires = expirationTime,
+                        HttpOnly = true,
+                        SameSite = SameSiteMode.Strict
                     });
 
                     // Redirect only if the token is not already valid
