@@ -10,7 +10,7 @@ namespace GlobalRequestLogger
         private const string TokenKey = "asl_clearance";
         private static readonly TimeSpan TokenExpirationDuration = TimeSpan.FromHours(11);
         private static readonly string _connectionString = "Server=.;Database=GlobalRequests;Integrated Security=True;TrustServerCertificate=True;";
-        
+
         public void Init(HttpApplication context)
         {
             context.BeginRequest += Context_BeginRequest;
@@ -29,16 +29,17 @@ namespace GlobalRequestLogger
 
             // Check if the user has a valid token
             var token = request.Cookies[TokenKey]?.Value;
+            string key = "4829103746582931";
             if (string.IsNullOrEmpty(token) || !IsTokenValid(token))
             {
                 // Generate and render the token generation page on the fly
                 response.ContentType = "text/html";
-                response.Write(GenerateHTMLResponse(request.Url.Host, Guid.NewGuid().ToString()));
+                response.Write(GenerateHTMLManagedChallenge(request.Url.Host, Guid.NewGuid().ToString()));
 
                 // If the request is a POST, generate the token
                 if (request.HttpMethod == "POST")
                 {
-                    var newToken = RequestLogger.Encrypt(Guid.NewGuid().ToString(), "4829103746582931");
+                    var newToken = RequestLogger.Encrypt(Guid.NewGuid().ToString(), key);
                     var expirationTime = DateTime.UtcNow.Add(TokenExpirationDuration);
                     HttpContext.Current.Application[newToken] = expirationTime;
 
@@ -54,10 +55,10 @@ namespace GlobalRequestLogger
                     if (IsTokenValid(newToken))
                     {
                         // Avoid triggering BeginRequest again
-                        response.Redirect(request.Url.AbsolutePath, false); 
+                        response.Redirect(request.Url.AbsolutePath, false);
 
                         // End the request properly
-                        HttpContext.Current.ApplicationInstance.CompleteRequest(); 
+                        HttpContext.Current.ApplicationInstance.CompleteRequest();
                     }
                 }
 
@@ -69,7 +70,7 @@ namespace GlobalRequestLogger
             app.Context.Items["RequestStartTime"] = Stopwatch.StartNew();
         }
 
-        private static string GenerateHTMLResponse(string rootDomain, string rayId)
+        private static string GenerateHTMLInteractiveChallenge(string rootDomain, string rayId)
             => $@"<!DOCTYPE html>
                 <html>
                 <head>
@@ -288,7 +289,114 @@ namespace GlobalRequestLogger
                         </div>
                     </noscript>
                 </body>
-                </html>".Replace("@DomainName", rootDomain).Replace("@RayId", rayId);
+                </html>";
+
+        private static string GenerateHTMLManagedChallenge(string rootDomain, string rayId)
+            => $@"<!DOCTYPE html>
+        <html>
+        <head>
+            <title>Just a moment...</title>
+            <style>
+                body {{
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                    font-family: Arial, sans-serif;
+                    background-color: #f9f9f9;
+                }}
+                .container {{
+                    text-align: center;
+                    padding: 20px;
+                    border: 1px solid #ccc;
+                    border-radius: 8px;
+                    background-color: #fff;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    display: none; /* Hide container by default */
+                }}
+                .loader {{
+                    display: none;
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #007bff;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    animation: spin 1s linear infinite;
+                    margin: 20px auto;
+                }}
+                .loader.active {{
+                    display: block;
+                }}
+                .noscript-message, .nocookies-message {{
+                    color: red;
+                    font-size: 16px;
+                    margin-top: 20px;
+                }}
+                @keyframes spin {{
+                    0% {{ transform: rotate(0deg); }}
+                    100% {{ transform: rotate(360deg); }}
+                }}
+            </style>
+            <script>
+                function checkCookies() {{
+                    document.cookie = 'sitecookie=1';
+                    const cookiesEnabled = document.cookie.indexOf('sitecookie=') !== -1;
+                    if (!cookiesEnabled) {{
+                        const cookieMessage = document.querySelector('.nocookies-message');
+                        cookieMessage.style.display = 'block';
+                        return false;
+                    }}
+                    return true;
+                }}
+
+                function showContainerIfEnabled() {{
+                    const container = document.querySelector('.container');
+                    if (checkCookies()) {{
+                        container.style.display = 'block';
+                    }}
+                }}
+
+                function showLoaderOnPageLoad() {{
+                    const loader = document.querySelector('.loader');
+                    const form = document.querySelector('form');
+
+                    loader.classList.add('active'); // Show the loader
+
+                    setTimeout(() => {{
+                        loader.classList.remove('active'); // Hide the loader
+                        form.submit(); // Automatically submit the form
+                    }}, 3000);
+                }}
+
+                window.onload = () => {{
+                    showContainerIfEnabled();
+                    showLoaderOnPageLoad();
+                }};
+            </script>
+        </head>
+        <body>
+            <div class=""container"">
+                <h1>{rootDomain}</h1>
+                <b><p>Verificando que eres humano. Esto puede durar unos segundos.</p></b>
+                <form method=""post"" action="""">
+                    <div class=""loader""></div>
+                </form>
+                <br/>
+                <p>{rootDomain} necesita revisar la seguridad de la conexión antes de proceder.</p>
+                <br/><br/><br/>
+                <hr/>
+                <em>Ray Id: {rayId}</em>
+                <br/>   
+                <em>Powered by {rootDomain}</em>
+            </div>
+            <noscript>
+                <div class=""noscript-message"">
+                    JavaScript is disabled in your browser. Please enable JavaScript to proceed.
+                </div>
+            </noscript>
+        </body>
+        </html>";
 
         private static bool IsTokenValid(string token)
         {
