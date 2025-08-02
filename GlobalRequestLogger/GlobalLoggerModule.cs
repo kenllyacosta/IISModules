@@ -76,7 +76,7 @@ namespace GlobalRequestLogger
                                     HttpContext.Current.Application[newToken] = expirationTime;
 
                                     // Set the cookie with the new token
-                                    response.Cookies.Add(new HttpCookie(TokenKey, newToken) { Expires = expirationTime, HttpOnly = true, SameSite = SameSiteMode.Strict });
+                                    response.Cookies.Add(AddCookie(newToken, expirationTime));
 
                                     // Redirect only if the token is not already valid
                                     if (IsTokenValid(newToken))
@@ -106,7 +106,7 @@ namespace GlobalRequestLogger
                                     HttpContext.Current.Application[newToken] = expirationTime;
 
                                     // Set the cookie with the new token
-                                    response.Cookies.Add(new HttpCookie(TokenKey, newToken) { Expires = expirationTime, HttpOnly = true, SameSite = SameSiteMode.Strict });
+                                    response.Cookies.Add(AddCookie(newToken, expirationTime));
 
                                     // Redirect only if the token is not already valid
                                     if (IsTokenValid(newToken))
@@ -130,6 +130,9 @@ namespace GlobalRequestLogger
             // Start timing the request
             app.Context.Items["RequestStartTime"] = Stopwatch.StartNew();
         }
+
+        private static HttpCookie AddCookie(string newToken, DateTime expirationTime)
+            => new HttpCookie(TokenKey, newToken) { Expires = expirationTime, HttpOnly = true, SameSite = SameSiteMode.Strict };
 
         private static IEnumerable<WafRule> FetchWafRules(string host)
         {
@@ -222,9 +225,9 @@ namespace GlobalRequestLogger
                 case "does not contain":
                     return !fieldValue.Contains(condition.Valor);
                 case "matches regex":
-                    return Regex.IsMatch(fieldValue, condition.Valor);
+                    return Regex.IsMatch(fieldValue, condition.Valor, RegexOptions.None, TimeSpan.FromSeconds(2));
                 case "does not match":
-                    return !Regex.IsMatch(fieldValue, condition.Valor);
+                    return !Regex.IsMatch(fieldValue, condition.Valor, RegexOptions.None, TimeSpan.FromSeconds(2));
                 case "starts with":
                     return fieldValue.StartsWith(condition.Valor, StringComparison.OrdinalIgnoreCase);
                 case "does not start with":
