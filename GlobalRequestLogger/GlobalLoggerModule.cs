@@ -126,12 +126,10 @@ namespace GlobalRequestLogger
         }
 
         private static void StartRequestTiming(HttpApplication app)
-        {
-            app.Context.Items["RequestStartTime"] = Stopwatch.StartNew();
-        }
+            => app.Context.Items["RequestStartTime"] = Stopwatch.StartNew();
 
         private static HttpCookie AddCookie(string newToken, DateTime expirationTime)
-            => new HttpCookie(TokenKey, newToken) { Secure = true, Expires = expirationTime, HttpOnly = true, SameSite = SameSiteMode.Strict };
+            => new HttpCookie(TokenKey, newToken) { Expires = expirationTime, HttpOnly = true, SameSite = SameSiteMode.Strict };
 
         private static IEnumerable<WafRule> FetchWafRules(string host)
         {
