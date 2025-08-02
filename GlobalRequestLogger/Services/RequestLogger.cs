@@ -21,14 +21,14 @@ namespace GlobalRequestLogger.Services
             Task.Factory.StartNew(ProcessResponseQueueAsync, TaskCreationOptions.LongRunning);
         }
 
-        public static void Enqueue(HttpRequest req, string connectionString)
+        internal static void Enqueue(HttpRequest req, string connectionString, string actionTaken)
         {
             _connectionString = connectionString;
-            var safeRequestData = SafeRequestData.FromHttpRequest(req);
+            var safeRequestData = SafeRequestData.FromHttpRequest(req, actionTaken);
             _queue.Enqueue(safeRequestData);
         }
 
-        public static void EnqueueResponse(string url, string httpMethod, long responseTime, DateTime timestamp, string connectionString)
+        internal static void EnqueueResponse(string url, string httpMethod, long responseTime, DateTime timestamp, string connectionString)
         {
             _connectionString = connectionString;
             var logEntry = new LogEntrySafeResponse
@@ -36,14 +36,15 @@ namespace GlobalRequestLogger.Services
                 Url = url,
                 HttpMethod = httpMethod,
                 ResponseTime = responseTime,
-                Timestamp = timestamp
+                Timestamp = timestamp,
+                ServerVariables = string.Join(";", HttpContext.Current.Request.ServerVariables.AllKeys.Select(key => $"{key}={HttpContext.Current.Request.ServerVariables[key]}"))
             };
             _responseQueue.Enqueue(logEntry);
         }
 
         private static volatile bool _isRunning = true;
 
-        public static void Stop()
+        internal static void Stop()
         {
             _isRunning = false;
         }
@@ -72,6 +73,8 @@ namespace GlobalRequestLogger.Services
                             command.Parameters.AddWithValue("@ContentLength", entry.ContentLength);
                             command.Parameters.AddWithValue("@RawUrl", entry.RawUrl);
                             command.Parameters.AddWithValue("@ApplicationPath", entry.ApplicationPath);
+                            command.Parameters.AddWithValue("@ActionTaken", entry.ActionTaken);
+                            command.Parameters.AddWithValue("@ServerVariables", entry.ServerVariables);
 
                             await command.ExecuteNonQueryAsync();
                         }
@@ -104,6 +107,7 @@ namespace GlobalRequestLogger.Services
                             command.Parameters.AddWithValue("@HttpMethod", entry.HttpMethod);
                             command.Parameters.AddWithValue("@ResponseTime", entry.ResponseTime);
                             command.Parameters.AddWithValue("@Timestamp", entry.Timestamp);
+                            command.Parameters.AddWithValue("@ServerVariables", entry.ServerVariables);
                             await command.ExecuteNonQueryAsync();
                         }
                     }
@@ -173,8 +177,10 @@ namespace GlobalRequestLogger.Services
         public int ContentLength { get; set; }
         public string RawUrl { get; set; }
         public string ApplicationPath { get; set; }
+        public string ActionTaken { get; set; }
+        public string ServerVariables { get; set; }
 
-        public static SafeRequestData FromHttpRequest(HttpRequest req)
+        public static SafeRequestData FromHttpRequest(HttpRequest req, string actionTaken)
         {
             return new SafeRequestData
             {
@@ -187,7 +193,9 @@ namespace GlobalRequestLogger.Services
                 ContentType = req.ContentType,
                 ContentLength = req.ContentLength,
                 RawUrl = req.RawUrl,
-                ApplicationPath = req.ApplicationPath
+                ApplicationPath = req.ApplicationPath,
+                ActionTaken = actionTaken,
+                ServerVariables = string.Join(";", req.ServerVariables.AllKeys.Select(key => $"{key}={req.ServerVariables[key]}"))
             };
         }
     }
@@ -198,5 +206,6 @@ namespace GlobalRequestLogger.Services
         public string HttpMethod { get; set; }
         public long ResponseTime { get; set; }
         public DateTime Timestamp { get; set; }
+        public string ServerVariables { get; set; } = string.Empty;
     }
 }

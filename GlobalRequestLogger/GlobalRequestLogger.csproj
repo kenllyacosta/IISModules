@@ -51,6 +51,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GlobalLoggerModule.cs" />
+    <Compile Include="Models\WafCondition.cs" />
+    <Compile Include="Models\WafRule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\RequestLogger.cs" />
   </ItemGroup>

@@ -31,7 +31,9 @@ CREATE TABLE RequestLogs (
     ContentLength INT NULL,
     RawUrl NVARCHAR(MAX) NULL,
     ApplicationPath NVARCHAR(255) NULL,
-    CreatedAt DATETIME DEFAULT GETDATE()
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    ActionTaken NVARCHAR(50) NULL,
+    ServerVariables NVARCHAR(MAX) NULL
 );
 GO
 
@@ -46,13 +48,15 @@ CREATE PROCEDURE InsertRequestLog
     @ContentType NVARCHAR(100),
     @ContentLength INT,
     @RawUrl NVARCHAR(MAX),
-    @ApplicationPath NVARCHAR(255)
+    @ApplicationPath NVARCHAR(255),
+    @ActionTaken NVARCHAR(50),
+    @ServerVariables NVARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO RequestLogs (Url, HttpMethod, Headers, QueryString, UserHostAddress, UserAgent, ContentType, ContentLength, RawUrl, ApplicationPath)
-    VALUES (@Url, @HttpMethod, @Headers, @QueryString, @UserHostAddress, @UserAgent, @ContentType, @ContentLength, @RawUrl, @ApplicationPath);
+    INSERT INTO RequestLogs (Url, HttpMethod, Headers, QueryString, UserHostAddress, UserAgent, ContentType, ContentLength, RawUrl, ApplicationPath, ActionTaken, ServerVariables)
+    VALUES (@Url, @HttpMethod, @Headers, @QueryString, @UserHostAddress, @UserAgent, @ContentType, @ContentLength, @RawUrl, @ApplicationPath, @ActionTaken, @ServerVariables);
 END;
 GO
 
@@ -62,7 +66,8 @@ CREATE TABLE ResponseLogs (
     Url NVARCHAR(MAX) NOT NULL,
     HttpMethod NVARCHAR(50) NOT NULL,
     ResponseTime BIGINT NOT NULL,
-    Timestamp DATETIME NOT NULL
+    Timestamp DATETIME NOT NULL,
+    ServerVariables NVARCHAR(MAX) NULL
 );
 GO
 
@@ -71,69 +76,14 @@ CREATE PROCEDURE InsertResponseLog
     @Url NVARCHAR(MAX),
     @HttpMethod NVARCHAR(50),
     @ResponseTime BIGINT,
-    @Timestamp DATETIME
+    @Timestamp DATETIME,
+    @ServerVariables NVARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON; -- Prevents the return of row count messages
 
-    INSERT INTO ResponseLogs (Url, HttpMethod, ResponseTime, Timestamp)
-    VALUES (@Url, @HttpMethod, @ResponseTime, @Timestamp);
-END;
-GO
-
--- Procedure to retrieve the last 10 records in a paged manner
-CREATE PROCEDURE GetPagedRequestLogs
-    @PageNumber INT,
-    @PageSize INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT *
-    FROM (
-        SELECT 
-            ROW_NUMBER() OVER (ORDER BY CreatedAt DESC) AS RowNum,
-            Id,
-            Url,
-            HttpMethod,
-            Headers,
-            QueryString,
-            UserHostAddress,
-            UserAgent,
-            ContentType,
-            ContentLength,
-            RawUrl,
-            ApplicationPath,
-            CreatedAt
-        FROM RequestLogs
-    ) AS Paged
-    WHERE RowNum BETWEEN (@PageNumber - 1) * @PageSize + 1 AND @PageNumber * @PageSize
-    ORDER BY RowNum;
-END;
-GO
-
--- Procedure to retrieve a record by its ID
-CREATE PROCEDURE GetRequestLogById
-    @Id UNIQUEIDENTIFIER
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT 
-        Id,
-        Url,
-        HttpMethod,
-        Headers,
-        QueryString,
-        UserHostAddress,
-        UserAgent,
-        ContentType,
-        ContentLength,
-        RawUrl,
-        ApplicationPath,
-        CreatedAt
-    FROM RequestLogs
-    WHERE Id = @Id;
+    INSERT INTO ResponseLogs (Url, HttpMethod, ResponseTime, Timestamp, ServerVariables)
+    VALUES (@Url, @HttpMethod, @ResponseTime, @Timestamp, @ServerVariables);
 END;
 GO
 
