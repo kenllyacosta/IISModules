@@ -30,104 +30,103 @@ namespace GlobalRequestLogger
             var response = app.Context.Response;
             RequestLogger.Enqueue(request, _connectionString, "traffic");
 
-            // Fetch rules for the application
             var rules = FetchWafRules(request.Url.Host);
 
             foreach (var rule in rules.OrderBy(r => r.Prioridad))
             {
-                if (!rule.Habilitado) 
+                if (!rule.Habilitado)
                     continue;
 
-                // Evaluate conditions
-                bool isMatch = EvaluateConditions(rule.Conditions, request);
-                if (isMatch)
+                if (EvaluateConditions(rule.Conditions, request))
                 {
-                    // Check if the user has a valid token
-                    var token = request.Cookies[TokenKey]?.Value;
-                    string key = "4829103746582931";
-
-                    // Take action based on the rule
-                    //skip, block, Managed Challenge, Interactive Challenge, Log
-                    switch (rule.Accion.ToLower())
-                    {
-                        case "skip"://Let the request proceed
-                            RequestLogger.Enqueue(request, _connectionString, "skip");
-                            return;
-                        case "block": //Block the request
-                            RequestLogger.Enqueue(request, _connectionString, "block");
-                            response.StatusCode = 403;
-                            response.ContentType = "text/html";
-                            response.Write(GenerateHTMLUserBlockedPage(request.Url.Host, Guid.NewGuid().ToString()));
-                            response.End();
-                            return;
-                        case "managed challenge": // Render a managed challenge page
-                            if (string.IsNullOrEmpty(token) || !IsTokenValid(token)) 
-                            {
-                                RequestLogger.Enqueue(request, _connectionString, "managed challenge");
-                                // Generate and render the token generation page on the fly
-                                response.ContentType = "text/html";
-                                response.Write(GenerateHTMLManagedChallenge(request.Url.Host, Guid.NewGuid().ToString()));
-
-                                // If the request is a POST, generate the token
-                                if (request.HttpMethod == "POST")
-                                {
-                                    var newToken = RequestLogger.Encrypt(Guid.NewGuid().ToString(), key);
-                                    var expirationTime = DateTime.UtcNow.Add(TokenExpirationDuration);
-                                    HttpContext.Current.Application[newToken] = expirationTime;
-
-                                    // Set the cookie with the new token
-                                    response.Cookies.Add(AddCookie(newToken, expirationTime));
-
-                                    // Redirect only if the token is not already valid
-                                    if (IsTokenValid(newToken))
-                                    {
-                                        // Avoid triggering BeginRequest again
-                                        response.Redirect(request.Url.AbsolutePath, false);
-
-                                        // End the request properly
-                                        HttpContext.Current.ApplicationInstance.CompleteRequest();
-                                    }
-                                }
-                            }
-                            return;
-                        case "interactive challenge": // Render an interactive challenge page
-                            if (string.IsNullOrEmpty(token) || !IsTokenValid(token))
-                            {
-                                RequestLogger.Enqueue(request, _connectionString, "interactive challenge");
-                                // Generate and render the token generation page on the fly
-                                response.ContentType = "text/html";
-                                response.Write(GenerateHTMLInteractiveChallenge(request.Url.Host, Guid.NewGuid().ToString()));
-
-                                // If the request is a POST, generate the token
-                                if (request.HttpMethod == "POST")
-                                {
-                                    var newToken = RequestLogger.Encrypt(Guid.NewGuid().ToString(), key);
-                                    var expirationTime = DateTime.UtcNow.Add(TokenExpirationDuration);
-                                    HttpContext.Current.Application[newToken] = expirationTime;
-
-                                    // Set the cookie with the new token
-                                    response.Cookies.Add(AddCookie(newToken, expirationTime));
-
-                                    // Redirect only if the token is not already valid
-                                    if (IsTokenValid(newToken))
-                                    {
-                                        // Avoid triggering BeginRequest again
-                                        response.Redirect(request.Url.AbsolutePath, false);
-
-                                        // End the request properly
-                                        HttpContext.Current.ApplicationInstance.CompleteRequest();
-                                    }
-                                }
-                            }
-                            return;
-                        case "log": // Log the request
-                            RequestLogger.Enqueue(request, _connectionString, "log");
-                            return;
-                    }
+                    HandleRuleAction(rule, request, response);
+                    return;
                 }
             }
 
-            // Start timing the request
+            StartRequestTiming(app);
+        }
+
+        private static void HandleRuleAction(WafRule rule, HttpRequest request, HttpResponse response)
+        {
+            var token = request.Cookies[TokenKey]?.Value;
+            const string key = "4829103746582931";
+
+            switch (rule.Accion.ToLower())
+            {
+                case "skip":
+                    LogAndProceed(request, "skip");
+                    break;
+                case "block":
+                    BlockRequest(request, response);
+                    break;
+                case "managed challenge":
+                    HandleManagedChallenge(request, response, token, key);
+                    break;
+                case "interactive challenge":
+                    HandleInteractiveChallenge(request, response, token, key);
+                    break;
+                case "log":
+                    LogAndProceed(request, "log");
+                    break;
+            }
+        }
+
+        private static void LogAndProceed(HttpRequest request, string action)
+            => RequestLogger.Enqueue(request, _connectionString, action);
+
+        private static void BlockRequest(HttpRequest request, HttpResponse response)
+        {
+            RequestLogger.Enqueue(request, _connectionString, "block");
+            response.StatusCode = 403;
+            response.ContentType = "text/html";
+            response.Write(GenerateHTMLUserBlockedPage(request.Url.Host, Guid.NewGuid().ToString()));
+            response.End();
+        }
+
+        private static void HandleManagedChallenge(HttpRequest request, HttpResponse response, string token, string key)
+        {
+            if (string.IsNullOrEmpty(token) || !IsTokenValid(token))
+            {
+                RequestLogger.Enqueue(request, _connectionString, "managed challenge");
+                response.ContentType = "text/html";
+                response.Write(GenerateHTMLManagedChallenge(request.Url.Host, Guid.NewGuid().ToString()));
+
+                if (request.HttpMethod == "POST")
+                    GenerateAndSetToken(request, response, key);
+            }
+        }
+
+        private static void HandleInteractiveChallenge(HttpRequest request, HttpResponse response, string token, string key)
+        {
+            if (string.IsNullOrEmpty(token) || !IsTokenValid(token))
+            {
+                RequestLogger.Enqueue(request, _connectionString, "interactive challenge");
+                response.ContentType = "text/html";
+                response.Write(GenerateHTMLInteractiveChallenge(request.Url.Host, Guid.NewGuid().ToString()));
+
+                if (request.HttpMethod == "POST")
+                    GenerateAndSetToken(request, response, key);
+            }
+        }
+
+        private static void GenerateAndSetToken(HttpRequest request, HttpResponse response, string key)
+        {
+            var newToken = RequestLogger.Encrypt(Guid.NewGuid().ToString(), key);
+            var expirationTime = DateTime.UtcNow.Add(TokenExpirationDuration);
+            HttpContext.Current.Application[newToken] = expirationTime;
+
+            response.Cookies.Add(AddCookie(newToken, expirationTime));
+
+            if (IsTokenValid(newToken))
+            {
+                response.Redirect(request.Url.AbsolutePath, false);
+                HttpContext.Current.ApplicationInstance.CompleteRequest();
+            }
+        }
+
+        private static void StartRequestTiming(HttpApplication app)
+        {
             app.Context.Items["RequestStartTime"] = Stopwatch.StartNew();
         }
 
