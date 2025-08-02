@@ -131,7 +131,7 @@ namespace GlobalRequestLogger
         }
 
         private static HttpCookie AddCookie(string newToken, DateTime expirationTime)
-            => new HttpCookie(TokenKey, newToken) { Expires = expirationTime, HttpOnly = true, SameSite = SameSiteMode.Strict };
+            => new HttpCookie(TokenKey, newToken) { Secure = true, Expires = expirationTime, HttpOnly = true, SameSite = SameSiteMode.Strict };
 
         private static IEnumerable<WafRule> FetchWafRules(string host)
         {
