@@ -12,6 +12,14 @@
 --6. Reset IIS Service. Run this command
 --	iisreset
 
+--Uninstall the module:
+--1. Remove the line added in step 5 from 'C:\Windows\System32\inetsrv\config\applicationHost.config'
+--2. Open a Developer Terminal with high privilege
+--3. Write this command
+--	gacutil /u GlobalRequestLogger
+--4. Delete file located C:\Windows\Microsoft.NET\assembly\GAC_MSIL
+
+
 Create database GlobalRequests
 Go
 
