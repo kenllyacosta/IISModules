@@ -171,7 +171,8 @@ namespace GlobalRequestLogger.Services
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                var command = new SqlCommand($@"SELECT TokenExpirationDurationHr FROM AppEntity WHERE Host = '{host}'", connection);
+                var command = new SqlCommand($@"SELECT TokenExpirationDurationHr FROM AppEntity WHERE Host = @host", connection);
+                command.Parameters.AddWithValue("@host", host);
 
                 int.TryParse(command.ExecuteScalar()?.ToString(), out var duration);
                 return duration > 0 ? duration : 12;
