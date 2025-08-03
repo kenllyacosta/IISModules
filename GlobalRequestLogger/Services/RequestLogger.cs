@@ -21,10 +21,10 @@ namespace GlobalRequestLogger.Services
             Task.Factory.StartNew(ProcessResponseQueueAsync, TaskCreationOptions.LongRunning);
         }
 
-        internal static void Enqueue(HttpRequest req, string connectionString, string actionTaken)
+        internal static void Enqueue(HttpRequest req, string connectionString, string actionTaken, int? ruleTriggered)
         {
             _connectionString = connectionString;
-            var safeRequestData = SafeRequestData.FromHttpRequest(req, actionTaken);
+            var safeRequestData = SafeRequestData.FromHttpRequest(req, actionTaken, ruleTriggered);
             _queue.Enqueue(safeRequestData);
         }
 
@@ -75,6 +75,7 @@ namespace GlobalRequestLogger.Services
                             command.Parameters.AddWithValue("@ApplicationPath", entry.ApplicationPath);
                             command.Parameters.AddWithValue("@ActionTaken", entry.ActionTaken);
                             command.Parameters.AddWithValue("@ServerVariables", entry.ServerVariables);
+                            command.Parameters.AddWithValue("@RuleTriggered", entry.RuleTriggered ?? (object)DBNull.Value);
 
                             await command.ExecuteNonQueryAsync();
                         }
@@ -163,6 +164,19 @@ namespace GlobalRequestLogger.Services
             }
             return Result;
         }
+
+        internal static int GetTokenExpirationDuration(string host)
+        {
+            //Query the database to fetch the token expiration duration
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                var command = new SqlCommand($@"SELECT TokenExpirationDurationHr FROM AppEntity WHERE Host = '{host}'", connection);
+
+                int.TryParse(command.ExecuteScalar()?.ToString(), out var duration);
+                return duration > 0 ? duration : 12;
+            }
+        }
     }
 
     internal class SafeRequestData
@@ -179,8 +193,9 @@ namespace GlobalRequestLogger.Services
         public string ApplicationPath { get; set; }
         public string ActionTaken { get; set; }
         public string ServerVariables { get; set; }
+        public int? RuleTriggered { get; set; }
 
-        public static SafeRequestData FromHttpRequest(HttpRequest req, string actionTaken)
+        public static SafeRequestData FromHttpRequest(HttpRequest req, string actionTaken, int? ruleTriggered)
         {
             return new SafeRequestData
             {
@@ -195,7 +210,8 @@ namespace GlobalRequestLogger.Services
                 RawUrl = req.RawUrl,
                 ApplicationPath = req.ApplicationPath,
                 ActionTaken = actionTaken,
-                ServerVariables = string.Join(";", req.ServerVariables.AllKeys.Select(key => $"{key}={req.ServerVariables[key]}"))
+                ServerVariables = string.Join(";", req.ServerVariables.AllKeys.Select(key => $"{key}={req.ServerVariables[key]}")),
+                RuleTriggered = ruleTriggered
             };
         }
     }

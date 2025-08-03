@@ -13,7 +13,6 @@ namespace GlobalRequestLogger
     public class GlobalLoggerModule : IHttpModule
     {
         private const string TokenKey = "asl_clearance";
-        private static readonly TimeSpan TokenExpirationDuration = TimeSpan.FromHours(11);
         private static readonly string _connectionString = "Server=.;Database=GlobalRequests;Integrated Security=True;TrustServerCertificate=True;";
 
         public void Init(HttpApplication context)
@@ -28,7 +27,7 @@ namespace GlobalRequestLogger
             var app = (HttpApplication)sender;
             var request = app.Context.Request;
             var response = app.Context.Response;
-            RequestLogger.Enqueue(request, _connectionString, "traffic");
+            RequestLogger.Enqueue(request, _connectionString, "traffic", null);
 
             var rules = FetchWafRules(request.Url.Host);
 
@@ -55,40 +54,40 @@ namespace GlobalRequestLogger
             switch (rule.Accion.ToLower())
             {
                 case "skip":
-                    LogAndProceed(request, "skip");
+                    LogAndProceed(request, "skip", rule.Id);
                     break;
                 case "block":
-                    BlockRequest(request, response);
+                    BlockRequest(request, response, rule.Id);
                     break;
                 case "managed challenge":
-                    HandleManagedChallenge(request, response, token, key);
+                    HandleManagedChallenge(request, response, token, key, rule.Id);
                     break;
                 case "interactive challenge":
-                    HandleInteractiveChallenge(request, response, token, key);
+                    HandleInteractiveChallenge(request, response, token, key, rule.Id);
                     break;
                 case "log":
-                    LogAndProceed(request, "log");
+                    LogAndProceed(request, "log", rule.Id);
                     break;
             }
         }
 
-        private static void LogAndProceed(HttpRequest request, string action)
-            => RequestLogger.Enqueue(request, _connectionString, action);
+        private static void LogAndProceed(HttpRequest request, string action, int? ruleTriggered)
+            => RequestLogger.Enqueue(request, _connectionString, action, ruleTriggered);
 
-        private static void BlockRequest(HttpRequest request, HttpResponse response)
+        private static void BlockRequest(HttpRequest request, HttpResponse response, int? ruleTriggered)
         {
-            RequestLogger.Enqueue(request, _connectionString, "block");
+            RequestLogger.Enqueue(request, _connectionString, "block", ruleTriggered);
             response.StatusCode = 403;
             response.ContentType = "text/html";
             response.Write(GenerateHTMLUserBlockedPage(request.Url.Host, Guid.NewGuid().ToString()));
             response.End();
         }
 
-        private static void HandleManagedChallenge(HttpRequest request, HttpResponse response, string token, string key)
+        private static void HandleManagedChallenge(HttpRequest request, HttpResponse response, string token, string key, int? ruleTriggered)
         {
             if (string.IsNullOrEmpty(token) || !IsTokenValid(token))
             {
-                RequestLogger.Enqueue(request, _connectionString, "managed challenge");
+                RequestLogger.Enqueue(request, _connectionString, "managed challenge", ruleTriggered);
                 response.ContentType = "text/html";
                 response.Write(GenerateHTMLManagedChallenge(request.Url.Host, Guid.NewGuid().ToString()));
 
@@ -99,11 +98,11 @@ namespace GlobalRequestLogger
             }
         }
 
-        private static void HandleInteractiveChallenge(HttpRequest request, HttpResponse response, string token, string key)
+        private static void HandleInteractiveChallenge(HttpRequest request, HttpResponse response, string token, string key, int? ruleTriggered)
         {
             if (string.IsNullOrEmpty(token) || !IsTokenValid(token))
             {
-                RequestLogger.Enqueue(request, _connectionString, "interactive challenge");
+                RequestLogger.Enqueue(request, _connectionString, "interactive challenge", ruleTriggered);
                 response.ContentType = "text/html";
                 response.Write(GenerateHTMLInteractiveChallenge(request.Url.Host, Guid.NewGuid().ToString()));
 
@@ -117,7 +116,8 @@ namespace GlobalRequestLogger
         private static void GenerateAndSetToken(HttpRequest request, HttpResponse response, string key)
         {
             var newToken = RequestLogger.Encrypt(Guid.NewGuid().ToString(), key);
-            var expirationTime = DateTime.UtcNow.Add(TokenExpirationDuration);
+
+            var expirationTime = DateTime.UtcNow.Add(TimeSpan.FromHours(RequestLogger.GetTokenExpirationDuration(request.Url.Host)));
             HttpContext.Current.Application[newToken] = expirationTime;
 
             response.Cookies.Add(AddCookie(newToken, expirationTime, request));
