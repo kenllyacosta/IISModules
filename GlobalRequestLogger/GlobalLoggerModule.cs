@@ -40,7 +40,7 @@ namespace GlobalRequestLogger
                 if (EvaluateConditions(rule.Conditions, request))
                 {
                     HandleRuleAction(rule, request, response);
-                    return;
+                    break;
                 }
             }
 
@@ -94,6 +94,8 @@ namespace GlobalRequestLogger
 
                 if (request.HttpMethod == "POST")
                     GenerateAndSetToken(request, response, key);
+                else
+                    HttpContext.Current.ApplicationInstance.CompleteRequest();
             }
         }
 
@@ -107,6 +109,8 @@ namespace GlobalRequestLogger
 
                 if (request.HttpMethod == "POST")
                     GenerateAndSetToken(request, response, key);
+                else
+                    HttpContext.Current.ApplicationInstance.CompleteRequest();
             }
         }
 
