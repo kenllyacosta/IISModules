@@ -116,7 +116,7 @@ namespace GlobalRequestLogger
             var expirationTime = DateTime.UtcNow.Add(TokenExpirationDuration);
             HttpContext.Current.Application[newToken] = expirationTime;
 
-            response.Cookies.Add(AddCookie(newToken, expirationTime));
+            response.Cookies.Add(AddCookie(newToken, expirationTime, request));
 
             if (IsTokenValid(newToken))
             {
@@ -128,8 +128,8 @@ namespace GlobalRequestLogger
         private static void StartRequestTiming(HttpApplication app)
             => app.Context.Items["RequestStartTime"] = Stopwatch.StartNew();
 
-        private static HttpCookie AddCookie(string newToken, DateTime expirationTime)
-            => new HttpCookie(TokenKey, newToken) { Expires = expirationTime, HttpOnly = true, SameSite = SameSiteMode.Strict };
+        private static HttpCookie AddCookie(string newToken, DateTime expirationTime, HttpRequest request)
+            => new HttpCookie(TokenKey, newToken) { Secure = request.IsSecureConnection, Expires = expirationTime, HttpOnly = true, SameSite = SameSiteMode.Strict };
 
         private static IEnumerable<WafRule> FetchWafRules(string host)
         {
