@@ -19,34 +19,147 @@
 --	gacutil /u GlobalRequestLogger
 --4. Delete file located C:\Windows\Microsoft.NET\assembly\GAC_MSIL
 
-
-Create database GlobalRequests
+USE [master]
 Go
-
-Use GlobalRequests
-Go
-
--- Create the RequestLogs table
-CREATE TABLE RequestLogs (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    Url NVARCHAR(MAX) NOT NULL,
-    HttpMethod NVARCHAR(50) NOT NULL,
-    Headers NVARCHAR(MAX) NULL,
-    QueryString NVARCHAR(MAX) NULL,
-    UserHostAddress NVARCHAR(50) NULL,
-    UserAgent NVARCHAR(255) NULL,
-    ContentType NVARCHAR(100) NULL,
-    ContentLength INT NULL,
-    RawUrl NVARCHAR(MAX) NULL,
-    ApplicationPath NVARCHAR(255) NULL,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    ActionTaken NVARCHAR(50) NULL,
-    ServerVariables NVARCHAR(MAX) NULL
-);
+CREATE DATABASE [GlobalRequests]
+GO
+USE [GlobalRequests]
 GO
 
--- Create the stored procedure to insert data into RequestLogs
-CREATE PROCEDURE InsertRequestLog
+CREATE TABLE [dbo].[AppEntity](
+	[Id] [uniqueidentifier] NOT NULL,
+	[AppName] [nvarchar](255) NOT NULL,
+	[AppDescription] [nvarchar](max) NULL,
+	[Host] [nvarchar](128) NOT NULL,
+	[CreationDate] [datetime] NULL,
+	[TokenExpirationDurationHr] [tinyint] NULL,
+PRIMARY KEY CLUSTERED 
+([Id] ASC) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+ CONSTRAINT [UQ_AppEntity_Host] UNIQUE NONCLUSTERED ([Host] ASC) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+
+CREATE TABLE [dbo].[RequestLogs](
+	[Id] [uniqueidentifier] NOT NULL,
+	[Url] [nvarchar](max) NOT NULL,
+	[HttpMethod] [nvarchar](50) NOT NULL,
+	[Headers] [nvarchar](max) NULL,
+	[QueryString] [nvarchar](max) NULL,
+	[UserHostAddress] [nvarchar](50) NULL,
+	[UserAgent] [nvarchar](255) NULL,
+	[ContentType] [nvarchar](100) NULL,
+	[ContentLength] [int] NULL,
+	[RawUrl] [nvarchar](max) NULL,
+	[ApplicationPath] [nvarchar](255) NULL,
+	[CreatedAt] [datetime] NULL,
+	[ActionTaken] [nvarchar](50) NULL,
+	[ServerVariables] [nvarchar](max) NULL,
+	[IdRuleTriggered] [int] NULL,
+PRIMARY KEY CLUSTERED 
+([Id] ASC) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+
+CREATE TABLE [dbo].[ResponseLogs](
+	[Id] [uniqueidentifier] NOT NULL,
+	[Url] [nvarchar](max) NOT NULL,
+	[HttpMethod] [nvarchar](50) NOT NULL,
+	[ResponseTime] [bigint] NOT NULL,
+	[Timestamp] [datetime] NOT NULL,
+	[ServerVariables] [nvarchar](max) NULL,
+PRIMARY KEY CLUSTERED 
+([Id] ASC)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+
+CREATE TABLE [dbo].[WafConditionEntity](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Campo] [nvarchar](100) NULL,
+	[Operador] [nvarchar](50) NULL,
+	[Valor] [nvarchar](1000) NULL,
+	[Logica] [nvarchar](10) NULL,
+	[WafRuleEntityId] [int] NOT NULL,
+	[CreationDate] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+([Id] ASC)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]) ON [PRIMARY]
+GO
+
+CREATE TABLE [dbo].[WafRuleEntity](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Nombre] [nvarchar](255) NULL,
+	[Accion] [nvarchar](50) NULL,
+	[AppId] [uniqueidentifier] NOT NULL,
+	[Prioridad] [int] NULL,
+	[Habilitado] [bit] NULL,
+	[CreationDate] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+([Id] ASC)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[AppEntity] 
+ADD  DEFAULT (newid()) FOR [Id]
+GO
+
+ALTER TABLE [dbo].[AppEntity] 
+ADD  DEFAULT (getdate()) FOR [CreationDate]
+GO
+
+ALTER TABLE [dbo].[AppEntity] 
+ADD  CONSTRAINT [DF_AppEntity_TokenExpirationDurationHr]  
+DEFAULT ((12)) FOR [TokenExpirationDurationHr]
+GO
+
+ALTER TABLE [dbo].[RequestLogs] 
+ADD  DEFAULT (newid()) FOR [Id]
+GO
+
+ALTER TABLE [dbo].[RequestLogs] 
+ADD  DEFAULT (getdate()) FOR [CreatedAt]
+
+GO
+ALTER TABLE [dbo].[ResponseLogs] 
+ADD  DEFAULT (newid()) FOR [Id]
+GO
+
+ALTER TABLE [dbo].[WafConditionEntity] 
+ADD  DEFAULT (getdate()) FOR [CreationDate]
+GO
+
+ALTER TABLE [dbo].[WafRuleEntity] 
+ADD  DEFAULT ((0)) FOR [Prioridad]
+GO
+
+ALTER TABLE [dbo].[WafRuleEntity] 
+ADD  DEFAULT ((1)) FOR [Habilitado]
+GO
+
+ALTER TABLE [dbo].[WafRuleEntity] 
+ADD  DEFAULT (getdate()) FOR [CreationDate]
+GO
+
+ALTER TABLE [dbo].[RequestLogs]  
+WITH CHECK ADD  CONSTRAINT [FK_RequestLogs_WafRuleEntity_IdRuleTriggered] 
+FOREIGN KEY([IdRuleTriggered])
+REFERENCES [dbo].[WafRuleEntity] ([Id])
+GO
+
+ALTER TABLE [dbo].[RequestLogs] 
+CHECK CONSTRAINT [FK_RequestLogs_WafRuleEntity_IdRuleTriggered]
+GO
+
+ALTER TABLE [dbo].[WafConditionEntity] 
+WITH CHECK ADD FOREIGN KEY([WafRuleEntityId])
+REFERENCES [dbo].[WafRuleEntity] ([Id])
+ON DELETE CASCADE
+GO
+
+ALTER TABLE [dbo].[WafRuleEntity]  
+WITH CHECK ADD  CONSTRAINT [FK_WafRuleEntity_AppId] 
+FOREIGN KEY([AppId]) REFERENCES [dbo].[AppEntity] ([Id])
+GO
+
+ALTER TABLE [dbo].[WafRuleEntity] 
+CHECK CONSTRAINT [FK_WafRuleEntity_AppId]
+GO
+
+CREATE PROCEDURE [dbo].[InsertRequestLog]
     @Url NVARCHAR(MAX),
     @HttpMethod NVARCHAR(50),
     @Headers NVARCHAR(MAX),
@@ -58,29 +171,18 @@ CREATE PROCEDURE InsertRequestLog
     @RawUrl NVARCHAR(MAX),
     @ApplicationPath NVARCHAR(255),
     @ActionTaken NVARCHAR(50),
-    @ServerVariables NVARCHAR(MAX) = NULL
+    @ServerVariables NVARCHAR(MAX),
+    @RuleTriggered Int
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO RequestLogs (Url, HttpMethod, Headers, QueryString, UserHostAddress, UserAgent, ContentType, ContentLength, RawUrl, ApplicationPath, ActionTaken, ServerVariables)
-    VALUES (@Url, @HttpMethod, @Headers, @QueryString, @UserHostAddress, @UserAgent, @ContentType, @ContentLength, @RawUrl, @ApplicationPath, @ActionTaken, @ServerVariables);
+    INSERT INTO RequestLogs (Url, HttpMethod, Headers, QueryString, UserHostAddress, UserAgent, ContentType, ContentLength, RawUrl, ApplicationPath, ActionTaken, ServerVariables, IdRuleTriggered)
+    VALUES (@Url, @HttpMethod, @Headers, @QueryString, @UserHostAddress, @UserAgent, @ContentType, @ContentLength, @RawUrl, @ApplicationPath, @ActionTaken, @ServerVariables, @RuleTriggered);
 END;
 GO
 
--- Create the ResponseLogs table
-CREATE TABLE ResponseLogs (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    Url NVARCHAR(MAX) NOT NULL,
-    HttpMethod NVARCHAR(50) NOT NULL,
-    ResponseTime BIGINT NOT NULL,
-    Timestamp DATETIME NOT NULL,
-    ServerVariables NVARCHAR(MAX) NULL
-);
-GO
-
--- Create the stored procedure to insert data into ResponseLogs
-CREATE PROCEDURE InsertResponseLog
+CREATE PROCEDURE [dbo].[InsertResponseLog]
     @Url NVARCHAR(MAX),
     @HttpMethod NVARCHAR(50),
     @ResponseTime BIGINT,
@@ -88,22 +190,24 @@ CREATE PROCEDURE InsertResponseLog
     @ServerVariables NVARCHAR(MAX) = NULL
 AS
 BEGIN
-    SET NOCOUNT ON; -- Prevents the return of row count messages
+    SET NOCOUNT ON;
 
     INSERT INTO ResponseLogs (Url, HttpMethod, ResponseTime, Timestamp, ServerVariables)
     VALUES (@Url, @HttpMethod, @ResponseTime, @Timestamp, @ServerVariables);
 END;
 GO
 
--- Step 1: Create a login for the IIS application pool identity
-CREATE LOGIN [IIS APPPOOL\DefaultAppPool] FROM WINDOWS;
+CREATE USER [IIS APPPOOL\DefaultAppPool] FOR LOGIN [IIS APPPOOL\DefaultAppPool] WITH DEFAULT_SCHEMA = [dbo];
 GO
 
--- Step 2: Create a user in the GlobalRequests database for the login
-CREATE USER [IIS APPPOOL\DefaultAppPool] FOR LOGIN [IIS APPPOOL\DefaultAppPool];
+GRANT EXECUTE ON OBJECT::dbo.InsertRequestLog TO [IIS APPPOOL\DefaultAppPool];
+GRANT EXECUTE ON OBJECT::dbo.InsertResponseLog TO [IIS APPPOOL\DefaultAppPool];
 GO
--- Step 3: Grant necessary permissions to the user
-GRANT EXECUTE ON [InsertRequestLog] TO [IIS APPPOOL\DefaultAppPool];
-GRANT EXECUTE ON [InsertResponseLog] TO [IIS APPPOOL\DefaultAppPool];
-GRANT EXECUTE ON [GetPagedRequestLogs] TO [IIS APPPOOL\DefaultAppPool];
-GRANT EXECUTE ON [GetRequestLogById] TO [IIS APPPOOL\DefaultAppPool];
+ALTER ROLE [db_datareader] ADD MEMBER [IIS APPPOOL\DefaultAppPool]
+GO
+ALTER ROLE [db_datawriter] ADD MEMBER [IIS APPPOOL\DefaultAppPool]
+GO
+USE [master]
+GO
+ALTER DATABASE [GlobalRequests] SET  READ_WRITE 
+GO
