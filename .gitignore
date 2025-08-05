@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 /WebApplicationModuleTest
 /IISModules.sln
+/GlobalRequestLoggerApi
+/GlobalRequestsApi
