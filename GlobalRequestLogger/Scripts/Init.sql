@@ -54,6 +54,7 @@ CREATE TABLE [dbo].[RequestLogs](
 	[ActionTaken] [nvarchar](50) NULL,
 	[ServerVariables] [nvarchar](max) NULL,
 	[IdRuleTriggered] [int] NULL,
+    [Host] [varchar](200) NULL
 PRIMARY KEY CLUSTERED 
 ([Id] ASC) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
@@ -172,13 +173,14 @@ CREATE PROCEDURE [dbo].[InsertRequestLog]
     @ApplicationPath NVARCHAR(255),
     @ActionTaken NVARCHAR(50),
     @ServerVariables NVARCHAR(MAX),
-    @RuleTriggered Int
+    @RuleTriggered Int,
+    @Host Varchar(200)
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO RequestLogs (Url, HttpMethod, Headers, QueryString, UserHostAddress, UserAgent, ContentType, ContentLength, RawUrl, ApplicationPath, ActionTaken, ServerVariables, IdRuleTriggered)
-    VALUES (@Url, @HttpMethod, @Headers, @QueryString, @UserHostAddress, @UserAgent, @ContentType, @ContentLength, @RawUrl, @ApplicationPath, @ActionTaken, @ServerVariables, @RuleTriggered);
+    INSERT INTO RequestLogs (Url, HttpMethod, Headers, QueryString, UserHostAddress, UserAgent, ContentType, ContentLength, RawUrl, ApplicationPath, ActionTaken, ServerVariables, IdRuleTriggered, Host)
+    VALUES (@Url, @HttpMethod, @Headers, @QueryString, @UserHostAddress, @UserAgent, @ContentType, @ContentLength, @RawUrl, @ApplicationPath, @ActionTaken, @ServerVariables, @RuleTriggered, @Host);
 END;
 GO
 

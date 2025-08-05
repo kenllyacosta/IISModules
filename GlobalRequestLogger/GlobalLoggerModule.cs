@@ -215,7 +215,7 @@ namespace GlobalRequestLogger
         {
             // Evaluate a single condition
             var fieldValue = GetFieldValue(condition.Campo, request);
-            switch (condition.Operador.ToLower())
+            switch (condition.Operador.ToLower().Trim())
             {
                 case "equals":
                     return fieldValue == condition.Valor;
@@ -227,7 +227,7 @@ namespace GlobalRequestLogger
                     return !fieldValue.Contains(condition.Valor);
                 case "matches regex":
                     return Regex.IsMatch(fieldValue, condition.Valor, RegexOptions.None, TimeSpan.FromSeconds(2));
-                case "does not match":
+                case "does not match regex":
                     return !Regex.IsMatch(fieldValue, condition.Valor, RegexOptions.None, TimeSpan.FromSeconds(2));
                 case "starts with":
                     return fieldValue.StartsWith(condition.Valor, StringComparison.OrdinalIgnoreCase);
@@ -245,34 +245,34 @@ namespace GlobalRequestLogger
         private static string GetFieldValue(string field, HttpRequest request)
         {
             // Extract the value of the specified field from the request
-            switch (field.ToLower())
+            switch (field.ToLower().Trim())
             {
                 case "cookie":
                     return string.Join(",", request.Cookies.AllKeys.Select(x => request.Cookies[x].Values.ToString().Replace("+", " ")));
                 case "hostname":
-                    return request.Url.Host;
+                    return request.Url.Host ?? "";
                 case "ip":
-                    return request.UserHostAddress;
+                    return request.UserHostAddress ?? "";
                 case "referrer":
                     return request.UrlReferrer?.AbsoluteUri ?? string.Empty;
                 case "method":
-                    return request.HttpMethod;
+                    return request.HttpMethod ?? "";
                 case "httpversion":
-                    return HttpContext.Current.Request.ServerVariables["SERVER_PROTOCOL"];
+                    return HttpContext.Current.Request.ServerVariables["SERVER_PROTOCOL"] ?? "";
                 case "user-agent":
-                    return request.UserAgent;
+                    return request.UserAgent ?? "";
                 case "x-forwarded-for":
-                    return request.Headers["X-Forwarded-For"];
+                    return request.Headers["X-Forwarded-For"] ?? "";
                 case "mimetype":
-                    return request.ContentType;
+                    return request.ContentType ?? "";
                 case "url-full":
                     return request.Url.Host + request.Url.AbsolutePath;
                 case "url":
-                    return request.Url.AbsolutePath;
+                    return request.Url.AbsolutePath ?? "";
                 case "url-path":
-                    return request.Url.PathAndQuery;
+                    return request.Url.PathAndQuery ?? "";
                 case "url-querystring":
-                    return request.QueryString.ToString();
+                    return request.QueryString.ToString() ?? "";
                 default:
                     return string.Empty;
             }

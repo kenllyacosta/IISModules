@@ -63,19 +63,20 @@ namespace GlobalRequestLogger.Services
                             await connection.OpenAsync();
                             var command = new SqlCommand("InsertRequestLog", connection) { CommandType = System.Data.CommandType.StoredProcedure };
 
-                            command.Parameters.AddWithValue("@Url", entry.Url);
-                            command.Parameters.AddWithValue("@HttpMethod", entry.HttpMethod);
-                            command.Parameters.AddWithValue("@Headers", entry.Headers);
-                            command.Parameters.AddWithValue("@QueryString", entry.QueryString);
-                            command.Parameters.AddWithValue("@UserHostAddress", entry.UserHostAddress);
-                            command.Parameters.AddWithValue("@UserAgent", entry.UserAgent);
-                            command.Parameters.AddWithValue("@ContentType", entry.ContentType);
+                            command.Parameters.AddWithValue("@Url", entry.Url ?? "");
+                            command.Parameters.AddWithValue("@HttpMethod", entry.HttpMethod ?? "");
+                            command.Parameters.AddWithValue("@Headers", entry.Headers ?? "");
+                            command.Parameters.AddWithValue("@QueryString", entry.QueryString ?? "");
+                            command.Parameters.AddWithValue("@UserHostAddress", entry.UserHostAddress ?? "");
+                            command.Parameters.AddWithValue("@UserAgent", entry.UserAgent ?? "");
+                            command.Parameters.AddWithValue("@ContentType", entry.ContentType ?? "");
                             command.Parameters.AddWithValue("@ContentLength", entry.ContentLength);
-                            command.Parameters.AddWithValue("@RawUrl", entry.RawUrl);
-                            command.Parameters.AddWithValue("@ApplicationPath", entry.ApplicationPath);
-                            command.Parameters.AddWithValue("@ActionTaken", entry.ActionTaken);
-                            command.Parameters.AddWithValue("@ServerVariables", entry.ServerVariables);
+                            command.Parameters.AddWithValue("@RawUrl", entry.RawUrl ?? "");
+                            command.Parameters.AddWithValue("@ApplicationPath", entry.ApplicationPath ?? "");
+                            command.Parameters.AddWithValue("@ActionTaken", entry.ActionTaken ?? "");
+                            command.Parameters.AddWithValue("@ServerVariables", entry.ServerVariables ?? "");
                             command.Parameters.AddWithValue("@RuleTriggered", entry.RuleTriggered ?? (object)DBNull.Value);
+                            command.Parameters.AddWithValue("@Host", entry.Host ?? "");
 
                             await command.ExecuteNonQueryAsync();
                         }
@@ -195,6 +196,7 @@ namespace GlobalRequestLogger.Services
         public string ActionTaken { get; set; }
         public string ServerVariables { get; set; }
         public int? RuleTriggered { get; set; }
+        public string Host { get; set; }
 
         public static SafeRequestData FromHttpRequest(HttpRequest req, string actionTaken, int? ruleTriggered)
         {
@@ -212,7 +214,8 @@ namespace GlobalRequestLogger.Services
                 ApplicationPath = req.ApplicationPath,
                 ActionTaken = actionTaken,
                 ServerVariables = string.Join(";", req.ServerVariables.AllKeys.Select(key => $"{key}={req.ServerVariables[key]}")),
-                RuleTriggered = ruleTriggered
+                RuleTriggered = ruleTriggered,
+                Host = req.Url?.Host
             };
         }
     }
